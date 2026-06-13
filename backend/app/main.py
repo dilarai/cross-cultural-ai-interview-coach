@@ -3,6 +3,7 @@ from app.schemas import InterviewRequest, AnswerRequest
 from google import genai
 from dotenv import load_dotenv
 import os
+import json
 
 load_dotenv()
 
@@ -37,18 +38,48 @@ def answer_interview(request: AnswerRequest):
         response = client.models.generate_content(
             model="gemini-2.5-flash",
             contents=f"""
-You are an interview coach.
+You are an expert interview coach.
 
-Evaluate the following answer clearly and professionally.
+Evaluate the following interview answer.
+
+Return ONLY valid JSON.
+
+Rules:
+- score must be between 1 and 10
+- strengths: maximum 2 items
+- weaknesses: maximum 2 items
+- improvements: maximum 3 items
+- sample_answer must be under 80 words
+- be concise
+- do not include explanations outside the JSON
+
+Format:
+
+{{
+    "score": 1,
+    "strengths": ["..."],
+    "weaknesses": ["..."],
+    "improvements": ["..."],
+    "sample_answer": "..."
+}}
 
 Answer:
 {request.answer}
 """
-        )
+        )   
+        clean_text = (
+        response.text
+        .replace("```json", "")
+        .replace("```", "")
+        .strip()
+    )
+        
+        feedback = json.loads(clean_text)
+        
+        
+        return feedback
 
-        return {
-            "feedback": response.text
-        }
+        
 
     except Exception as e:
         # log (gerçek projede logging kullanılır)
