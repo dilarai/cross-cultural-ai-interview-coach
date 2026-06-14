@@ -21,14 +21,38 @@ app = FastAPI()
 def root():
     return {"message": "Hello World"}
 
+country_style = {
+    "USA": """
+Focus on:
+- leadership
+- achievements
+- impact
+""",
+
+    "Japan": """
+Focus strongly on:
+- teamwork
+- collaboration
+- humility
+
+Avoid highly individualistic or leadership-focused questions.
+""",
+
+    "Germany": """
+Focus on:
+- technical expertise
+- structured thinking
+- problem solving
+"""
+}
 
 @app.post("/interview/start")
 def start_interview(request: InterviewRequest):
 
     try:
         response = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=f"""
+    model="gemini-2.5-flash",
+    contents=f"""
 You are an interview coach.
 
 Generate ONE interview question.
@@ -36,9 +60,19 @@ Generate ONE interview question.
 Role:
 {request.role}
 
+Country:
+{request.country}
+
+IMPORTANT:
+The question MUST reflect the interview culture of this country.
+
+Interview style:
+{country_style.get(request.country, "")}
+
 Return only the interview question.
 """
-        )
+)
+        
 
         return {
             "question": response.text.strip()
