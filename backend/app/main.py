@@ -4,6 +4,7 @@ from google import genai
 from dotenv import load_dotenv
 import os
 import json
+import uuid
 
 load_dotenv()
 
@@ -16,6 +17,7 @@ client = genai.Client(api_key=api_key)
 
 app = FastAPI()
 
+sessions = {}
 
 @app.get("/")
 def root():
@@ -48,6 +50,7 @@ Focus on:
 
 @app.post("/interview/start")
 def start_interview(request: InterviewRequest):
+    country = request.country.strip().title()
 
     try:
         response = client.models.generate_content(
@@ -61,26 +64,35 @@ Role:
 {request.role}
 
 Country:
-{request.country}
+{country}
 
 IMPORTANT:
 The question MUST reflect the interview culture of this country.
+Always write the question in English.
+Do not translate the question into the local language.
 
 Interview style:
-{country_style.get(request.country, "")}
+{country_style.get(country, "")}
 
 Return only the interview question.
 """
 )
-        
+        session_id = str(uuid.uuid4())
+
+        sessions[session_id] = {
+    "role": request.role,
+    "country": request.country.strip().title(),
+    "question_count": 1
+}
 
         return {
+            "session_id": session_id,
             "question": response.text.strip()
         }
 
     except Exception as e:
 
-        print("Gemini error:", repr(e))
+        print("ERROR:", repr(e))
 
         raise HTTPException(
             status_code=500,
