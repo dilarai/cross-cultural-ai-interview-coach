@@ -24,12 +24,34 @@ def root():
 
 @app.post("/interview/start")
 def start_interview(request: InterviewRequest):
-    return {
-        "role": request.role,
-        "country": request.country,
-        "question": "Tell me about yourself."
-    }
 
+    try:
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=f"""
+You are an interview coach.
+
+Generate ONE interview question.
+
+Role:
+{request.role}
+
+Return only the interview question.
+"""
+        )
+
+        return {
+            "question": response.text.strip()
+        }
+
+    except Exception as e:
+
+        print("Gemini error:", repr(e))
+
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to generate interview question."
+        )
 
 @app.post("/interview/answer")
 def answer_interview(request: AnswerRequest):
