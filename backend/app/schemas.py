@@ -9,3 +9,13 @@ class AnswerRequest(BaseModel):
 
 class AnswerRequest(BaseModel):
     answer: str
+
+class FeedbackResponse(BaseModel):
+    score: int
+    strengths: list[str]
+    weaknesses: list[str]
+    improvements: list[str]
+    sample_answer: str
+
+class NextQuestionRequest(BaseModel):
+    session_id: str

@@ -1,5 +1,5 @@
 from fastapi import FastAPI, HTTPException
-from app.schemas import InterviewRequest, AnswerRequest
+from app.schemas import InterviewRequest, AnswerRequest, NextQuestionRequest
 from google import genai
 from dotenv import load_dotenv
 import os
@@ -98,6 +98,63 @@ Return only the interview question.
             status_code=500,
             detail="Unable to generate interview question."
         )
+
+@app.post("/interview/next-question")
+def next_question(request: NextQuestionRequest):
+
+    session = sessions.get(request.session_id)
+
+    if not session:
+        raise HTTPException(
+            status_code=404,
+            detail="Session not found"
+        )
+    
+    session["question_count"] += 1
+
+    role = session["role"]
+    country = session["country"]
+
+    try:
+        response = client.models.generate_content(
+        model="gemini-2.5-flash",
+        contents=f"""
+You are an interview coach.
+
+Generate ONE NEW interview question.
+
+Role:
+{role}
+
+Country:
+{country}
+
+IMPORTANT:
+- The question MUST reflect the interview culture of this country.
+- Always write the question in English.
+- Do not translate the question into the local language.
+- Do not repeat previous questions.
+
+Interview style:
+{country_style.get(country, "")}
+
+Return only the interview question.
+"""
+    )
+
+        return {
+        "question_count": session["question_count"],
+        "question": response.text.strip()
+        }
+
+    except Exception as e:
+
+        print("ERROR:", repr(e))
+
+    raise HTTPException(
+        status_code=500,
+        detail="Unable to generate next question."
+    )
 
 @app.post("/interview/answer")
 def answer_interview(request: AnswerRequest):
